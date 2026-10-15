@@ -168,6 +168,11 @@ allowed to interact with any hardware or patients. This task could also be used 
 passing over equipment, paper towels, etc. and could be used as a safety evaluation to ensure minimum contacts when in
 an interactable environment.
 
+## Code
+
+The code to run this experiment (v2) is in [`peg_transfer_benchmark/`](peg_transfer_benchmark/); see its
+[README](peg_transfer_benchmark/README.md#run-it) for what is needed and how to run a round.
+
 ## References
 
 [1] F. Rashidi Fathabadi, J. L. Grantner, S. A. Shebrain, and I. Abdel-Qader, "Autonomous sequential surgical skills

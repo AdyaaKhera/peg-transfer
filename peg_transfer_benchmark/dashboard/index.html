@@ -1,0 +1,537 @@
+<title>Peg Transfer Console</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root {
+  --bg: #E9EFEE; --surface: #FFFFFF; --surface-2: #F3F7F6; --ink: #13201E; --muted: #566865;
+  --line: #CFDAD7; --accent: #5B2C83; --accent-soft: #EEE6F6; --ok: #1C7A4D; --ok-soft: #E1F2E9;
+  --warn: #9A5A00; --warn-soft: #FBEEDA; --bad: #C2271C; --bad-ink: #FFFFFF;
+  --sans: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0C1413; --surface: #141F1D; --surface-2: #1A2725; --ink: #E2ECE9; --muted: #92A5A1;
+    --line: #283936; --accent: #B994E3; --accent-soft: #2A2139; --ok: #4CC38A; --ok-soft: #15301F;
+    --warn: #E5A643; --warn-soft: #33270F; --bad: #E5483D; --bad-ink: #FFFFFF;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0C1413; --surface: #141F1D; --surface-2: #1A2725; --ink: #E2ECE9; --muted: #92A5A1;
+  --line: #283936; --accent: #B994E3; --accent-soft: #2A2139; --ok: #4CC38A; --ok-soft: #15301F;
+  --warn: #E5A643; --warn-soft: #33270F; --bad: #E5483D; --bad-ink: #FFFFFF;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }   /* .demo sets display: inline-flex, which would override hidden */
+html, body { height: 100%; background: var(--bg); }
+body { color: var(--ink); font: 14px/1.4 var(--sans); margin: 0; padding: 10px 16px; overflow: hidden; }
+.wrap { height: 100%; max-width: 1600px; margin: 0 auto; display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 10px; }
+.mono, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; min-width: 0; min-height: 0; }
+h2 { margin: 0; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+button { font: inherit; color: inherit; }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* header: one line */
+.top { display: flex; align-items: center; gap: 10px 18px; padding: 8px 12px; flex-wrap: wrap; }
+.ident { display: grid; min-width: 0; flex: 1 1 260px; }
+.ident b.t { font-size: 17px; line-height: 1.2; }
+.ident span { color: var(--muted); font-size: 13px; }
+.demo { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--warn); background: var(--warn-soft);
+  border-radius: 6px; padding: 3px 4px 3px 8px; }
+.demo b { letter-spacing: .06em; }
+.demo button { border: 0; background: transparent; cursor: pointer; padding: 2px 6px; border-radius: 4px; color: var(--warn); font-size: 12px; }
+.demo button[aria-pressed="true"] { background: color-mix(in srgb, var(--warn) 22%, transparent); font-weight: 700; }
+.pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px; border-radius: 999px; font-size: 13px; font-weight: 700;
+  background: var(--surface-2); border: 1px solid var(--line); white-space: nowrap; }
+.pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.pill[data-s="thinking"] { color: var(--accent); background: var(--accent-soft); border-color: transparent; }
+.pill[data-s="thinking"] .dot { background: var(--accent); animation: pulse 1.1s infinite; }
+.pill[data-s="marking"], .pill[data-s="checking"] { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.pill[data-s="marking"] .dot, .pill[data-s="checking"] .dot { background: var(--ok); animation: pulse .7s infinite; }
+.pill[data-s="done"] { color: var(--ok); background: var(--ok-soft); border-color: transparent; }
+.pill[data-s="done"] .dot { background: var(--ok); }
+.pill[data-s="stopped"] { color: var(--bad); border-color: var(--bad); }
+.pill[data-s="stopped"] .dot { background: var(--bad); }
+.pill[data-s="stopping"] { color: var(--bad); border-color: var(--bad); }
+.pill[data-s="stopping"] .dot { background: var(--bad); animation: pulse .5s infinite; }
+@keyframes pulse { 50% { opacity: .25; } }
+.clock { font: 15px var(--mono); color: var(--muted); }
+.money { display: grid; gap: 3px; min-width: 190px; }
+.money .row { display: flex; align-items: baseline; gap: 6px; }
+.money .spent { font: 500 20px/1 var(--mono); font-variant-numeric: tabular-nums; }
+.money .cap { font: 13px var(--mono); color: var(--muted); }
+.money.over .spent, .money.over .cap { color: var(--bad); font-weight: 700; } .money.over .bar i { background: var(--bad); }
+.money small { font-size: 11.5px; color: var(--muted); }
+.bar { height: 6px; background: var(--surface-2); border: 1px solid var(--line); border-radius: 4px; overflow: hidden; position: relative; }
+.bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); width: 0; transition: width .3s; }
+.stop { background: var(--bad); color: var(--bad-ink); border: 0; border-radius: 8px; padding: 11px 22px; font-weight: 700; font-size: 17px;
+  letter-spacing: .04em; cursor: pointer; display: inline-flex; gap: 10px; align-items: center; box-shadow: 0 2px 0 color-mix(in srgb, var(--bad) 55%, black); }
+.stop:hover { filter: brightness(1.08); }
+.stop:active { transform: translateY(1px); box-shadow: none; }
+.stop:disabled { opacity: .4; cursor: not-allowed; }
+.stop kbd { font: 500 11px var(--mono); border: 1px solid rgba(255,255,255,.6); border-radius: 4px; padding: 1px 5px; }
+
+/* main */
+.main { display: grid; grid-template-columns: minmax(0, 2.5fr) minmax(300px, 1fr); gap: 10px; min-height: 0; }
+.left { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 10px; min-height: 0; }
+.cams { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; min-height: 0; }
+.tile { position: relative; border-radius: 10px; overflow: hidden; min-height: 0; background: #20302D; }
+.tile canvas, .tile img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.tile img { object-fit: contain; background: #111816; display: none; }
+body.live .tile img { display: block; }
+body.live .tile canvas { display: none; }
+.thumb { height: 22px; margin-left: 8px; vertical-align: middle; border-radius: 3px; border: 1px solid var(--line); cursor: zoom-in; }
+.turn .note { font-size: 13px; color: var(--muted); font-style: italic; }
+.big { position: fixed; inset: 0; background: rgba(0,0,0,.75); display: grid; place-items: center; z-index: 10; cursor: zoom-out; padding: 16px; }
+.big img { max-width: 100%; max-height: 100%; border-radius: 6px; }
+.tile .lbl, .tile .hud { position: absolute; font: 500 11px var(--mono); color: #EAF3F1; background: rgba(0,0,0,.45); padding: 2px 7px; border-radius: 4px; letter-spacing: .04em; }
+.tile .lbl { left: 8px; top: 8px; }
+.tile .hud { left: 8px; bottom: 8px; }
+.tile .rec { position: absolute; right: 8px; top: 8px; font: 500 11px var(--mono); color: #fff; background: rgba(0,0,0,.45); padding: 2px 7px; border-radius: 4px; }
+
+.activity { padding: 8px 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 4px 16px; }
+.nowline { font-size: 15px; font-weight: 700; align-self: center; }
+.nowline span { display: block; font: 400 12px var(--mono); color: var(--muted); margin-top: 2px; }
+.log { list-style: none; margin: 0; padding: 0; height: 76px; overflow-y: auto; font-size: 12.5px; display: grid; align-content: start; }
+.log li { display: grid; grid-template-columns: 42px 48px 1fr; gap: 6px; padding: 1px 0; }
+.log time { font: 11.5px var(--mono); color: var(--muted); padding-top: 1px; }
+.log .tag { font: 500 10.5px var(--mono); text-transform: uppercase; padding-top: 2px; }
+.log .tag.model { color: var(--accent); } .log .tag.robot { color: var(--ok); } .log .tag.budget { color: var(--warn); } .log .tag.stop, .log .tag.collide { color: var(--bad); }
+
+/* thinking column */
+.right { display: flex; flex-direction: column; min-height: 0; }
+.right > header { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 12px 6px; gap: 8px; }
+.feed { flex: 1; min-height: 0; overflow-y: auto; padding: 0 12px 10px; display: grid; gap: 10px; align-content: start; }
+.turn { border-top: 1px solid var(--line); padding-top: 8px; display: grid; gap: 6px; }
+.turn .th { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; font-weight: 700; }
+.turn .th .meta { font: 400 11.5px var(--mono); color: var(--muted); }
+.thought { white-space: pre-wrap; font-size: 14px; }
+.thought.live::after { content: "▍"; color: var(--accent); animation: pulse .8s infinite; }
+pre.call { margin: 0; font: 12px var(--mono); background: var(--accent-soft); border-radius: 6px; padding: 6px 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+pre.call::before { content: "→ robot  "; color: var(--accent); font-weight: 500; }
+.empty { color: var(--muted); padding: 8px 0; }
+.score { border-top: 1px solid var(--line); padding: 8px 12px 10px; display: grid; gap: 6px; }
+.checks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }
+.check { font-size: 12px; padding: 4px 6px; border-radius: 6px; background: var(--surface-2); color: var(--muted); display: grid; }
+.check b { font: 500 12.5px var(--mono); color: var(--ink); }
+.check.ok { background: var(--ok-soft); } .check.ok b { color: var(--ok); }
+.check.bad { background: color-mix(in srgb, var(--bad) 13%, transparent); } .check.bad b { color: var(--bad); }
+.verdict { font-weight: 700; font-size: 13px; }
+.reward { margin-top: 8px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.reward .rbig { font-size: 20px; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums; }
+.reward .warn { color: var(--bad); font-weight: 700; }
+.reward .parts { font-size: 11px; }
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .wrap { height: auto; }
+  .main { grid-template-columns: 1fr; }
+  .cams { grid-template-columns: 1fr; grid-auto-rows: 240px; }
+  .activity { grid-template-columns: 1fr; }
+  .feed { max-height: 420px; }
+}
+@media (max-width: 560px) { .stop { width: 100%; justify-content: center; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <section class="panel top">
+    <div class="ident">
+      <b class="t" id="title">FLS peg transfer</b>
+      <span id="sub">GPT → two YAM arms (Isaac Sim)</span>
+    </div>
+    <span class="demo" id="demo"><span id="demoText"><b>STARTING</b> waiting for the simulator's first message</span>
+      <span id="demoCtl"><button type="button" id="sp1" aria-pressed="true">1×</button><button type="button" id="sp3" aria-pressed="false">3×</button>
+      <button type="button" id="restart">Restart</button></span></span>
+    <span class="pill" id="status" data-s="idle"><span class="dot"></span><span id="statusText">Starting</span></span>
+    <span class="clock" id="clock">00:00</span>
+    <div class="money" id="money" title="Budget $3.00 per provider: passing it turns this red; the run goes on until you press STOP">
+      <div class="row"><span class="spent" id="spent">$0.0000</span><span class="cap" id="capText">/ $3.00 budget</span></div>
+      <div class="bar"><i id="spentBar"></i></div>
+      <small id="priceLine">Standard · $2 in · $10 out per 1M tokens</small>
+    </div>
+    <button type="button" class="stop" id="stopBtn" title="Stop the session now (Esc)">STOP <kbd>Esc</kbd></button>
+  </section>
+
+  <div class="main">
+    <div class="left">
+      <div class="cams">
+        <div class="tile"><canvas id="armCam"></canvas><img id="armImg" alt="Scene camera: the two YAM arms over the skin pad"><span class="lbl">SCENE CAMERA · FACING THE ROBOT</span><span class="rec" id="rec">● LIVE</span></div>
+        <div class="tile"><canvas id="wristCam"></canvas><img id="wristImg" alt="Right wrist camera"><span class="lbl" id="wristLbl">LEFT WRIST CAMERA</span><span class="hud" id="tipHud">left: empty · right: empty</span></div>
+      </div>
+      <section class="panel activity">
+        <div class="nowline" id="now">Waiting for the model<span id="nowSub">&nbsp;</span></div>
+        <ul class="log" id="log" aria-label="Action log"></ul>
+      </section>
+    </div>
+
+    <section class="panel right" aria-label="Model reasoning">
+      <header><h2>What the model is thinking</h2><span class="mono" style="font-size:12px;color:var(--muted)" id="turnCount">turn 0</span></header>
+      <div class="feed" id="feed"><div class="empty">Reasoning appears here as it streams in.</div></div>
+      <div class="score">
+        <h2>Score</h2>
+        <div class="checks" id="checks"></div>
+        <div class="verdict" id="verdict"></div>
+        <div class="reward" id="reward" hidden></div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div class="big" id="big" hidden><img id="bigImg" alt="Photo sent to the model"></div>
+
+<script>
+(() => {
+const LIVE = window.MARKING_LIVE === true;
+// the access token from this page's own link, sent with every request: a cookie would be shared by every dashboard
+// open on localhost (cookies ignore the port), so the last one opened would overwrite the others' tokens
+const TOKEN = new URLSearchParams(location.search).get("k") || "";
+const withKey = (url) => url + (url.includes("?") ? "&" : "?") + "k=" + encodeURIComponent(TOKEN);            // set by the dashboard server in real runs
+const PRICE = { in: 2, cached: 0.10, out: 10 };       // Standard mode, $ per 1M tokens (live: from the run)
+let CAP = 3.00;
+const PAD = { w: 150, h: 100 };                       // skin pad, mm (core/skin_case.py)
+const LESION = { x: 78, y: 50, r: 3 };
+const RSTL_DEG = 30;
+
+const $ = id => document.getElementById(id);
+let speed = 1, runId = 0, S;
+const fresh = () => ({ turns: [], strokes: [], tip: null, contact: false, status: "idle", t0: performance.now(), tEnd: null, score: null, spend: null, partial: false, checkOrder: null });
+
+const turnCost = u => ((u.input - u.cached) * PRICE.in + u.cached * PRICE.cached + u.output * PRICE.out) / 1e6;
+const runCost = () => S.turns.reduce((a, t) => a + (t.usage ? turnCost(t.usage) : 0), 0);
+const usd = (v, d = 4) => "$" + v.toFixed(d);
+const k = n => n >= 1000 ? (n / 1000).toFixed(1) + "k" : String(n);
+
+/* ---------- geometry ---------- */
+function circlePts(cx, cy, r, wobble = .12, seed = 1) {
+  const pts = [], n = Math.ceil(2 * Math.PI * r / .4);
+  for (let i = 0; i <= n; i++) { const a = -Math.PI / 2 + i / n * 2 * Math.PI, w = wobble * Math.sin(a * 3 + seed) + wobble * .6 * Math.sin(a * 7 + seed * 2);
+    pts.push([cx + (r + w) * Math.cos(a), cy + (r + w) * Math.sin(a)]); }
+  return pts;
+}
+function fusiformPts(cx, cy, L, W, deg, wobble = .12) {
+  const a = L / 2, b = W / 2, th = deg * Math.PI / 180, c = Math.cos(th), s = Math.sin(th), pts = [], n = 120;
+  const half = u => b * Math.pow(Math.max(0, 1 - u * u), 1.25);
+  const push = (x, y, i) => { const w = wobble * Math.sin(i * .21); pts.push([cx + x * c - (y + w) * s, cy + x * s + (y + w) * c]); };
+  for (let i = 0; i <= n; i++) { const u = -1 + 2 * i / n; push(a * u, -half(u), i); }
+  for (let i = 1; i <= n; i++) { const u = 1 - 2 * i / n; push(a * u, half(u), i + n); }
+  return pts;
+}
+const pathLen = pts => pts.reduce((acc, p, i) => i ? acc + Math.hypot(p[0] - pts[i - 1][0], p[1] - pts[i - 1][1]) : 0, 0);
+const lesionPt = (a, s = 1) => { const r = LESION.r * s * (1 + .12 * Math.sin(3 * a + .5) + .07 * Math.sin(5 * a)); return [LESION.x + r * Math.cos(a), LESION.y + r * Math.sin(a)]; };
+
+/* ---------- canvases ---------- */
+const armCv = $("armCam"), wristCv = $("wristCam");
+let dirty = true;
+function fit(cv) { const dpr = devicePixelRatio || 1, W = cv.clientWidth, H = cv.clientHeight;
+  if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+  const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+const noise = (() => { const r = []; let s = 7; const rnd = () => (s = (s * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 900; i++) r.push([rnd() * PAD.w, rnd() * PAD.h, rnd() * .5 + .15, rnd()]); return r; })();
+
+// --- wrist camera: top-down on the pad, follows the marker tip while marking
+const view = { cx: PAD.w / 2, cy: PAD.h / 2, span: PAD.w * 1.15, ay: .5 };
+function drawWrist() {
+  const [c, W, H] = fit(wristCv);
+  const marking = S.tip && S.status === "marking";
+  const tgt = marking ? { cx: S.tip[0], cy: S.tip[1], span: 48, ay: .58 } : { cx: PAD.w / 2, cy: PAD.h / 2, span: PAD.w * 1.13, ay: .5 };
+  let moving = false;
+  for (const key of ["cx", "cy", "span", "ay"]) { const d = tgt[key] - view[key]; if (Math.abs(d) > .01) moving = true; view[key] += d * .18; }
+  const sc = Math.min(W / view.span, H / (view.span * .72));
+  const X = x => W / 2 + (x - view.cx) * sc, Y = y => H * view.ay + (y - view.cy) * sc;
+  // drape
+  c.fillStyle = "#2C6158"; c.fillRect(0, 0, W, H);
+  c.strokeStyle = "rgba(255,255,255,.05)"; c.lineWidth = 1;
+  for (let i = -H; i < W; i += 6) { c.beginPath(); c.moveTo(i, 0); c.lineTo(i + H, H); c.stroke(); }
+  // skin
+  const rr = 2.5 * sc;
+  c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.roundRect(X(0) + 3, Y(0) + 5, PAD.w * sc, PAD.h * sc, rr); c.fill();
+  const g = c.createLinearGradient(X(0), Y(0), X(PAD.w), Y(PAD.h)); g.addColorStop(0, "#EBC3A6"); g.addColorStop(1, "#DFB091");
+  c.fillStyle = g; c.beginPath(); c.roundRect(X(0), Y(0), PAD.w * sc, PAD.h * sc, rr); c.fill();
+  c.save(); c.clip();
+  for (const [x, y, r, t] of noise) { c.fillStyle = t > .5 ? "rgba(150,90,60,.10)" : "rgba(255,240,230,.12)"; c.beginPath(); c.arc(X(x), Y(y), r * sc * .5, 0, 7); c.fill(); }
+  const th = RSTL_DEG * Math.PI / 180, dx = Math.cos(th), dy = Math.sin(th);
+  c.strokeStyle = "rgba(140,85,60,.28)"; c.lineWidth = Math.max(1, sc * .25);
+  for (let j = -20; j <= 20; j++) { const off = j * 7, px = PAD.w / 2 - dy * off, py = PAD.h / 2 + dx * off; c.beginPath();
+    for (let t = -110; t <= 110; t += 6) { const b = Math.sin(t / 30 + j) * .6, x = px + dx * t - dy * b, y = py + dy * t + dx * b; t === -110 ? c.moveTo(X(x), Y(y)) : c.lineTo(X(x), Y(y)); } c.stroke(); }
+  c.beginPath(); for (let i = 0; i <= 60; i++) { const [x, y] = lesionPt(i / 60 * 2 * Math.PI); i ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y)); }
+  const lg = c.createRadialGradient(X(LESION.x - .6), Y(LESION.y - .6), sc * .3, X(LESION.x), Y(LESION.y), LESION.r * sc * 1.15);
+  lg.addColorStop(0, "#C99C8E"); lg.addColorStop(.55, "#9B6457"); lg.addColorStop(1, "#7A4A3E"); c.fillStyle = lg; c.fill();
+  c.restore();
+  // 10 mm grid with labels (the model sees this)
+  c.strokeStyle = "rgba(40,60,120,.22)"; c.lineWidth = 1; c.fillStyle = "rgba(30,40,90,.75)";
+  c.font = `500 ${Math.max(9, Math.min(13, sc * 2.4))}px "IBM Plex Mono", monospace`;
+  for (let x = 0; x <= PAD.w; x += 10) { c.beginPath(); c.moveTo(X(x), Y(0)); c.lineTo(X(x), Y(PAD.h)); c.stroke(); if (x && x < PAD.w) c.fillText(x, X(x) + 2, Math.max(Y(0), 14) + 12); }
+  for (let y = 0; y <= PAD.h; y += 10) { c.beginPath(); c.moveTo(X(0), Y(y)); c.lineTo(X(PAD.w), Y(y)); c.stroke(); if (y && y < PAD.h) c.fillText(y, Math.max(X(0), 0) + 3, Y(y) - 3); }
+  // ink
+  c.strokeStyle = "rgba(78,36,120,.92)"; c.lineWidth = Math.max(1.6, sc * .8); c.lineCap = "round"; c.lineJoin = "round";
+  for (const s of S.strokes) if (s.pts.length > 1) { c.beginPath(); s.pts.forEach(([x, y], i) => i ? c.lineTo(X(x), Y(y)) : c.moveTo(X(x), Y(y))); c.stroke(); }
+  // the marker, fixed in the wrist camera's frame
+  if (S.tip) {
+    const tx = X(S.tip[0]), ty = Y(S.tip[1]), lift = S.contact ? 0 : 3 * sc;
+    c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(tx + lift * .6, ty + lift * .3, sc * 1.2, sc * .8, 0, 0, 7); c.fill();
+    const bw = Math.max(18, W * .07);
+    c.fillStyle = "#F4F1F7"; c.beginPath(); c.moveTo(tx - 2, ty - lift); c.lineTo(tx - bw / 2, H + 2); c.lineTo(tx + bw / 2, H + 2); c.lineTo(tx + 2, ty - lift); c.closePath(); c.fill();
+    c.fillStyle = "#5B2C83"; c.beginPath(); c.moveTo(tx - 2, ty - lift); c.lineTo(tx - bw * .14, ty - lift + H * .1); c.lineTo(tx + bw * .14, ty - lift + H * .1); c.lineTo(tx + 2, ty - lift); c.closePath(); c.fill();
+    c.fillStyle = "rgba(0,0,0,.18)"; c.fillRect(tx + bw * .08, ty - lift + H * .1, bw * .14, H);
+  }
+  return moving;
+}
+
+// --- scene camera: the two black YAM arms over the table, seen from the front
+const armWrist = { x: null, y: null };
+function drawArm() {
+  const [c, W, H] = fit(armCv);
+  const yF = H * .44, yN = H * 1.02, wF = W * .66, wN = W * 1.15;
+  const P = (u, v) => [W / 2 + (u - .5) * (wF + (wN - wF) * v), yF + (yN - yF) * v];
+  const padP = (x, y) => P(.33 + x / PAD.w * .34, .30 + y / PAD.h * .40);
+  // wall + table
+  const wall = c.createLinearGradient(0, 0, 0, yF); wall.addColorStop(0, "#3A4A48"); wall.addColorStop(1, "#56666A");
+  c.fillStyle = wall; c.fillRect(0, 0, W, yF + 1);
+  const tab = c.createLinearGradient(0, yF, 0, H); tab.addColorStop(0, "#AEB7B6"); tab.addColorStop(1, "#D3D9D8");
+  c.fillStyle = tab; c.beginPath(); c.moveTo(...P(0, 0)); c.lineTo(...P(1, 0)); c.lineTo(...P(1, 1.2)); c.lineTo(...P(0, 1.2)); c.fill();
+  // drape + pad
+  const quad = (pts, fill) => { c.fillStyle = fill; c.beginPath(); pts.forEach((p, i) => i ? c.lineTo(...p) : c.moveTo(...p)); c.closePath(); c.fill(); };
+  quad([P(.27, .22), P(.73, .22), P(.73, .80), P(.27, .80)], "#2C6158");
+  quad([padP(0, 0), padP(PAD.w, 0), padP(PAD.w, PAD.h), padP(0, PAD.h)], "#E4B999");
+  c.fillStyle = "#8A5648"; c.beginPath();
+  for (let i = 0; i <= 30; i++) { const p = padP(...lesionPt(i / 30 * 2 * Math.PI)); i ? c.lineTo(...p) : c.moveTo(...p); } c.fill();
+  c.strokeStyle = "rgba(78,36,120,.95)"; c.lineWidth = Math.max(1, W * .002); c.lineJoin = "round";
+  for (const s of S.strokes) if (s.pts.length > 1) { c.beginPath(); s.pts.forEach((q, i) => i ? c.lineTo(...padP(...q)) : c.moveTo(...padP(...q))); c.stroke(); }
+
+  const l1 = H * .30, l2 = H * .27, mk = H * .12;
+  const elbowOf = (S0, T) => { let dx = T[0] - S0[0], dy = T[1] - S0[1], d = Math.hypot(dx, dy); d = Math.min(Math.max(d, Math.abs(l1 - l2) + 1), l1 + l2 - 1);
+    const a = Math.atan2(dy, dx), cc = Math.acos((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d));
+    const e1 = [S0[0] + l1 * Math.cos(a - cc), S0[1] + l1 * Math.sin(a - cc)], e2 = [S0[0] + l1 * Math.cos(a + cc), S0[1] + l1 * Math.sin(a + cc)];
+    return e1[1] < e2[1] ? e1 : e2; };
+  function arm(base, wrist, holding, camOnWrist) {
+    const sh = [base[0], base[1] - H * .17];
+    c.fillStyle = "rgba(0,0,0,.18)"; c.beginPath(); c.ellipse(wrist[0], (holding ? wrist[1] + mk : wrist[1] + H * .08) + 4, W * .03, H * .012, 0, 0, 7); c.fill();
+    c.fillStyle = "#16181B"; c.fillRect(base[0] - W * .035, sh[1], W * .07, base[1] - sh[1]);
+    c.fillStyle = "#24282D"; c.fillRect(base[0] - W * .05, base[1] - H * .02, W * .1, H * .03);
+    const el = elbowOf(sh, wrist);
+    c.lineCap = "round";
+    for (const [a, b, w] of [[sh, el, H * .045], [el, wrist, H * .036]]) {
+      c.strokeStyle = "#141619"; c.lineWidth = w; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
+      c.strokeStyle = "rgba(255,255,255,.10)"; c.lineWidth = w * .25; c.beginPath(); c.moveTo(a[0] - w * .2, a[1] - w * .2); c.lineTo(b[0] - w * .2, b[1] - w * .2); c.stroke(); }
+    for (const [p, r] of [[sh, H * .032], [el, H * .027], [wrist, H * .022]]) { c.fillStyle = "#2B3035"; c.strokeStyle = "#4A5157"; c.lineWidth = 1.5; c.beginPath(); c.arc(...p, r, 0, 7); c.fill(); c.stroke(); }
+    // gripper
+    const gy = wrist[1] + H * .02;
+    c.fillStyle = "#1B1E22"; c.fillRect(wrist[0] - W * .022, gy, W * .044, H * .025);
+    c.fillRect(wrist[0] - W * .02, gy + H * .025, W * .008, H * .035); c.fillRect(wrist[0] + W * .012, gy + H * .025, W * .008, H * .035);
+    if (camOnWrist) { c.fillStyle = "#3A4046"; c.fillRect(wrist[0] + W * .024, gy - H * .006, W * .022, H * .02); c.fillStyle = "#7FC4FF"; c.beginPath(); c.arc(wrist[0] + W * .035, gy + H * .004, H * .005, 0, 7); c.fill(); }
+    if (holding) { c.fillStyle = "#F4F1F7"; c.fillRect(wrist[0] - W * .006, gy - H * .02, W * .012, mk - H * .005);
+      c.fillStyle = "#5B2C83"; c.beginPath(); c.moveTo(wrist[0] - W * .006, gy - H * .025 + mk); c.lineTo(wrist[0] + W * .006, gy - H * .025 + mk); c.lineTo(wrist[0], gy + mk); c.fill(); }
+  }
+  // right arm target: marker tip on (or just above) the pad
+  const baseR = P(.80, -.05), baseL = P(.20, -.05);
+  let tgt;
+  if (S.tip) { const t = padP(...S.tip); tgt = [t[0], t[1] - mk - H * .02 - (S.contact ? 0 : H * .03)]; }
+  else tgt = [baseR[0] - W * .10, baseR[1] - H * .02];
+  if (armWrist.x === null) { armWrist.x = tgt[0]; armWrist.y = tgt[1]; }
+  const dx = tgt[0] - armWrist.x, dy = tgt[1] - armWrist.y; armWrist.x += dx * .25; armWrist.y += dy * .25;
+  arm(baseL, [baseL[0] + W * .10, baseL[1] - H * .02], false, true);
+  arm(baseR, [armWrist.x, armWrist.y], true, true);
+  return Math.hypot(dx, dy) > .5;
+}
+const loop = () => { if (dirty) { const a = drawArm(), b = drawWrist(); dirty = a || b; } requestAnimationFrame(loop); };
+new ResizeObserver(() => (dirty = true)).observe(armCv);
+
+/* ---------- panels ---------- */
+const STATUS = { idle: "Starting", thinking: "Model thinking", marking: "Robot marking", checking: "Taking photo", stopping: "Stopping…", done: "Finished", stopped: "Stopped" };
+const clockText = () => { const t = ((S.tEnd ?? performance.now()) - S.t0) / 1000; return String(Math.floor(t / 60)).padStart(2, "0") + ":" + String(Math.floor(t % 60)).padStart(2, "0"); };
+function logLine(tag, text) { const li = document.createElement("li"); li.innerHTML = `<time>${clockText()}</time><span class="tag ${tag}">${tag}</span><span></span>`;
+  li.lastChild.textContent = text; $("log").append(li); $("log").scrollTop = 1e9; }
+function setNow(text, sub = "") { $("now").firstChild.textContent = text; $("nowSub").textContent = sub || " "; }
+function renderStatus() { $("status").dataset.s = S.status; $("statusText").textContent = STATUS[S.status] ?? S.status;
+  $("stopBtn").disabled = ["done", "stopped", "stopping"].includes(S.status);
+  $("rec").textContent = S.status === "stopped" ? "■ STOPPED" : S.status === "done" ? "■ ENDED" : "● LIVE"; }
+function renderCost() {
+  const spent = S.spend ? S.spend.session : runCost();
+  $("spent").textContent = usd(spent); $("spentBar").style.width = Math.min(100, spent / CAP * 100) + "%";
+  $("money").classList.toggle("over", spent > CAP);
+  $("capText").textContent = spent > CAP ? `/ $${CAP.toFixed(2)} budget, OVER by ${usd(spent - CAP)}` : `/ $${CAP.toFixed(2)} budget`;
+  $("priceLine").textContent = S.spend?.simulated ? `stand-in model: $0 charged · this run would cost ${usd(S.spend.run)}`
+    : S.spend && S.spend.session !== S.spend.run ? `this run ${usd(S.spend.run)} · Standard $${PRICE.in} in · $${PRICE.out} out /1M`
+    : `Standard · $${PRICE.in} in · $${PRICE.out} out per 1M tokens`; }
+function renderTip() { $("tipHud").textContent = S.tip ? `x ${S.tip[0].toFixed(1)} · y ${S.tip[1].toFixed(1)} mm · ${S.contact ? "on skin" : "lifted"}`
+  : S.status === "marking" ? "moving" : "parked · off the pad"; }
+const CHECKS = [["margin", "Margin", "guideline margin"], ["ratio", "Length : width", "2.5–4"], ["axis", "Axis vs skin lines", "≤ 15°"],
+                ["closed", "Outline closed", "gap ≤ 1 mm"], ["lesion", "Lesion clear", "no ink on it"], ["trace", "Trace error", "≤ 0.75 mm"]];
+function renderScore() { const s = S.score, c = s?.checks;
+  const keys = (S.checkOrder || Object.keys(c || {})).filter(k => !c || c[k]);
+  $("checks").innerHTML = c ? keys.map(k => { const v = c[k];
+      return `<div class="check ${S.partial ? "" : v.pass ? "ok" : "bad"}">${v.label ?? k}<b>${v.text}</b></div>`; }).join("")
+    : `<div class="check">Transfers<b>0 / 12</b></div><div class="check">Drops<b>0</b></div><div class="check">Robot time<b>0 s</b></div>`;
+  const vd = $("verdict"), n = Object.keys(c || {}).length;
+  vd.textContent = !s ? "Scored as the run goes" : S.partial ? `In progress: ${c.complete?.text ?? "?"} transfers`
+    : s.pass ? "Pass: every object transferred, nothing dropped, within 300 s" : `Fail: ${s.n_pass} of ${n} checks passed`;
+  vd.style.color = !s || S.partial ? "var(--muted)" : s.pass ? "var(--ok)" : "var(--bad)"; }
+function renderReward(ev) {             /* v2: live reward, against this model's earlier rounds and the stand-in */
+  const r = ev.reward; if (!r) return; const el = $("reward"); el.hidden = false;
+  const h = ev.history || [], last = h.length ? h[h.length - 1] : null, best = h.length ? Math.max(...h) : null;
+  const per = ev.cost > 0 ? (r.total / ev.cost).toFixed(0) + " per $" : "";
+  const behind = last !== null && r.total < last;
+  el.innerHTML = `<div><span class="rbig">${r.total.toFixed(1)}</span> reward ${S.partial ? "so far" : "(final)"}`
+    + (last !== null ? ` · last round ${last.toFixed(1)} · best ${best.toFixed(1)}` : "")
+    + ` · stand-in ~${ev.ceiling}${per ? " · " + per : ""}</div>`
+    + (r.model_only !== undefined ? `<div>model-only ${r.model_only.toFixed(1)} (robot-caused contacts excluded)</div>` : "")
+    + (behind && S.partial ? `<div class="warn">Below this model's last round so far</div>` : "")
+    + `<div class="parts">${Object.entries(r.parts).map(([k, v]) => `${k} ${v}`).join(" · ")}</div>`; }
+function turnEl(n) { let el = document.querySelector(`.turn[data-n="${n}"]`); if (el) return el;
+  $("feed").querySelector(".empty")?.remove();
+  el = document.createElement("article"); el.className = "turn"; el.dataset.n = n;
+  el.innerHTML = `<div class="th"><span>Turn ${n}</span><span class="meta">thinking…</span></div><div class="thought live"></div>`;
+  $("feed").append(el); $("turnCount").textContent = "turn " + n; return el; }
+function addThumb(el, src) { const a = document.createElement("img"); a.className = "thumb"; a.alt = "Photo sent to the model"; a.title = "Photo sent to the model (click to enlarge)";
+  a.src = src; a.onclick = () => { $("bigImg").src = src; $("big").hidden = false; }; el.querySelector(".th span").append(a); }
+function renderAll() { renderStatus(); renderCost(); renderTip(); renderScore(); dirty = true; }
+
+/* ---------- events (the live server sends the same ones) ---------- */
+function apply(ev) {
+  switch (ev.type) {
+    case "meta":
+      $("title").textContent = ev.title; $("sub").textContent = ev.sub;
+      if (ev.price) Object.assign(PRICE, { in: ev.price.input, cached: ev.price.cached, out: ev.price.output });
+      if (ev.cap) CAP = ev.cap;
+      if (ev.checks) S.checkOrder = ev.checks;
+      if (LIVE) { $("demo").hidden = !ev.mock; $("demoText").innerHTML = "<b>STAND-IN MODEL</b> real sim, $0 charged"; $("demoCtl").hidden = true; }
+      renderCost(); break;
+    case "status": if (S.status === "stopping" && !["done", "stopped"].includes(ev.state)) break;
+      S.status = ev.state; if (ev.state === "done" || ev.state === "stopped") S.tEnd = performance.now(); renderStatus(); renderScore(); renderTip(); dirty = true; break;
+    case "now": setNow(ev.text, ev.sub); break;
+    case "turn_start": { S.turns.push({ n: ev.turn }); const el = turnEl(ev.turn); logLine("model", `Turn ${ev.turn}: photo sent`);
+      if (LIVE) fetch(withKey(`frame/photo${ev.turn}.jpg`)).then(r => r.ok ? r.blob() : null).then(b => b && addThumb(el, URL.createObjectURL(b))).catch(() => {});
+      else { try { addThumb(el, wristCv.toDataURL("image/jpeg", .8)); } catch (e) {} }
+      break; }
+    case "thinking": turnEl(ev.turn).querySelector(".thought").textContent += ev.text; $("feed").scrollTop = 1e9; break;
+    case "reply": { const el = turnEl(ev.turn); el.querySelector(".thought").classList.remove("live");
+      if (ev.note) { const n = document.createElement("div"); n.className = "note"; n.textContent = ev.note; el.append(n); }
+      const pre = document.createElement("pre"); pre.className = "call";
+      const { tool, ...args } = ev.call; pre.textContent = tool + (Object.keys(args).length ? " " + Object.entries(args).map(([a, v]) => `${a}=${Array.isArray(v) ? "(" + v.join(", ") + ")" : v}`).join("  ") : "");
+      el.append(pre); logLine("model", `Turn ${ev.turn}: ${tool}`); $("feed").scrollTop = 1e9; break; }
+    case "usage": { const t = S.turns.find(t => t.n === ev.turn); if (t) t.usage = ev;
+      const el = turnEl(ev.turn); el.querySelector(".thought").classList.remove("live");
+      el.querySelector(".meta").textContent = `${k(ev.input)} in · ${k(ev.output)} out · ${usd(ev.cost ?? turnCost(ev))}`; renderCost(); break; }
+    case "spend": S.spend = ev; renderCost(); break;
+    case "robot": logLine("robot", ev.text); break;
+    case "budget": logLine("budget", ev.text); break;
+    case "model": logLine("model", ev.text); break;
+    case "stroke_start": S.strokes.push({ pts: [] }); S.contact = true; renderTip(); dirty = true; break;
+    case "pt": S.strokes.at(-1).pts.push([ev.x, ev.y]); S.tip = [ev.x, ev.y]; renderTip(); dirty = true; break;
+    case "tip": S.tip = ev.at; S.contact = !!ev.contact; renderTip(); dirty = true; break;
+    case "hands": $("tipHud").textContent = `left: ${ev.left ?? "empty"} · right: ${ev.right ?? "empty"}`;
+      $("wristLbl").textContent = `${(ev.active || "left").toUpperCase()} WRIST CAMERA`; break;
+    case "score": S.score = ev.score; S.partial = !!ev.partial; renderScore(); renderReward(ev); break;
+    case "stopped": logLine("stop", ev.text); break;
+    case "collision": logLine("collide", ev.text); break;
+  }
+}
+
+/* ---------- stopping ---------- */
+function stopNow(reason) {
+  if (["done", "stopped", "stopping"].includes(S.status)) return;
+  if (LIVE) {   // the run lifts the marker, saves and reports back; the server cancels the job if it doesn't
+    S.status = "stopping"; renderStatus(); logLine("stop", `${reason}: asking the run to stop`);
+    setNow("Stopping", "lifting the marker and saving; the job is cancelled if this takes over 45 s");
+    fetch(withKey("stop"), { method: "POST" }).then(r => { if (!r.ok) logLine("stop", `Server refused STOP (${r.status}). Use: touch $RUN_DIR/STOP`); })
+      .catch(() => logLine("stop", "Server unreachable. Use: touch $RUN_DIR/STOP, or scancel the job"));
+    return;
+  }
+  runId++;
+  apply({ type: "stopped", text: `${reason}. Model call cancelled` });
+  S.contact = false;
+  apply({ type: "robot", text: "Marker lifted, arm holding. Partial results saved" });
+  setNow("Stopped", "arm holding still, marker lifted, no more model calls");
+  apply({ type: "status", state: "stopped" }); renderAll();
+}
+$("stopBtn").addEventListener("click", () => stopNow("STOP pressed"));
+document.addEventListener("keydown", e => { if (e.key === "Escape") { if (!$("big").hidden) { $("big").hidden = true; return; } stopNow("Esc pressed"); } });
+$("big").onclick = () => ($("big").hidden = true);
+
+/* ---------- demo controls ---------- */
+function setSpeed(v) { speed = v; $("sp1").setAttribute("aria-pressed", v === 1); $("sp3").setAttribute("aria-pressed", v === 3); }
+$("sp1").onclick = () => setSpeed(1); $("sp3").onclick = () => setSpeed(3);
+$("restart").onclick = () => startDemo();
+setInterval(() => { $("clock").textContent = clockText(); }, 250);
+
+/* ---------- demo script (sample run, not real model output) ---------- */
+const DEMO = [
+  { thought: "Nodular BCC, about 6 mm, centred near (78, 50). Low-risk BCC under 2 cm needs a 4 mm clinical margin, so the margin circle has radius 3.5 + 4 ≈ 7.5 mm.\n\nThe faint skin tension lines run at about 30°. The excision's long axis should follow them. I'll mark the margin circle first and check it before drawing the ellipse.",
+    call: { tool: "mark_circle", center_mm: [78, 50], radius_mm: 7.5 }, note: "Mark the 4 mm clinical margin first.",
+    usage: { input: 3420, cached: 0, output: 1380 }, stroke: () => circlePts(78, 50, 7.5, .12, 1.3), what: "circle" },
+  { thought: "The circle is closed and clears the lesion everywhere; the closest edge is about 4 mm away.\n\nEllipse width = circle diameter = 15 mm. At 3 : 1 the length is 45 mm, with the long axis along the skin lines at 30°.",
+    call: { tool: "mark_ellipse", center_mm: [78, 50], length_mm: 45, width_mm: 15, axis_deg: 30 }, note: "45 x 15 mm ellipse along the skin lines (30°).",
+    usage: { input: 3910, cached: 1280, output: 1220 }, stroke: () => fusiformPts(78, 50, 45, 15, 30, .14), what: "ellipse" },
+  { thought: "Outline closed, both tips sharp, long axis along the skin lines, margin circle fully inside. Marking is complete.",
+    call: { tool: "done" }, note: "Outline complete; ready for excision.", usage: { input: 4260, cached: 1280, output: 640 } },
+];
+const DEMO_SCORE = { pass: true, n_pass: 6, checks: { margin: { text: "4.3 mm", pass: true }, ratio: { text: "2.85 (45 x 16 mm)", pass: true },
+  axis: { text: "0.4° off", pass: true }, closed: { text: "0.5 mm gap", pass: true }, lesion: { text: "clear", pass: true }, trace: { text: "0.18 mm", pass: true } } };
+
+async function startDemo() {
+  const me = ++runId; S = fresh(); armWrist.x = null;
+  $("feed").innerHTML = `<div class="empty">Reasoning appears here as it streams in.</div>`; $("log").innerHTML = ""; $("turnCount").textContent = "turn 0";
+  setNow("Waiting for the model"); renderAll();
+  const wait = async ms => { await new Promise(r => setTimeout(r, ms / speed)); if (me !== runId) throw "stale"; };
+  try {
+    apply({ type: "robot", text: "Scene ready: skin pad on the drape, marker in the right gripper" });
+    for (let i = 0; i < DEMO.length; i++) {
+      const d = DEMO[i], n = i + 1;
+      apply({ type: "budget", text: `${usd(runCost())} spent + next call worst case ≤ $3.00: OK` });
+      apply({ type: "status", state: "thinking" }); setNow(`Model thinking (turn ${n})`, "reading the photo");
+      apply({ type: "turn_start", turn: n }); await wait(800);
+      for (const w of d.thought.split(/(?<=\s)/)) { apply({ type: "thinking", turn: n, text: w }); await wait(40); }
+      apply({ type: "usage", turn: n, ...d.usage }); apply({ type: "reply", turn: n, call: d.call, note: d.note });
+      if (d.call.tool === "done") break;
+      const pts = d.stroke(), len = pathLen(pts);
+      apply({ type: "status", state: "marking" });
+      setNow(`Moving to the start of the ${d.what}`, `(${pts[0][0].toFixed(1)}, ${pts[0][1].toFixed(1)}) mm`);
+      apply({ type: "tip", at: [pts[0][0], pts[0][1]], contact: false }); await wait(1100);
+      apply({ type: "robot", text: `Marker down: ${d.what}, ${len.toFixed(0)} mm` });
+      setNow(`Drawing the ${d.what}`, `${len.toFixed(0)} mm of marker line`);
+      apply({ type: "stroke_start" });
+      for (let j = 0; j < pts.length; j += 3) { for (let q = j; q < Math.min(j + 3, pts.length); q++) apply({ type: "pt", x: pts[q][0], y: pts[q][1] }); await wait(80); }
+      apply({ type: "tip", at: pts.at(-1), contact: false });
+      apply({ type: "robot", text: `Marker lifted: ${len.toFixed(0)} mm of ink in 1 stroke` });
+      apply({ type: "status", state: "checking" }); setNow("Parking the arm", "clearing the overhead camera's view"); await wait(600);
+      apply({ type: "tip", at: null }); await wait(700);
+    }
+    setNow("Scoring", "measuring the ink against the excision guideline"); await wait(700);
+    apply({ type: "score", score: DEMO_SCORE });
+    apply({ type: "robot", text: "Saved: video.mp4, pad_final.png, turns.json, result.json" });
+    setNow("Finished", `cost ${usd(runCost())} for ${S.turns.length} model turns`); apply({ type: "status", state: "done" });
+  } catch (e) { if (e !== "stale") throw e; }
+}
+
+/* ---------- live: real camera frames + the run's event stream ---------- */
+function liveFrames() {
+  for (const [id, name] of [["armImg", "arm"], ["wristImg", "wrist"]]) {
+    const img = $(id); let busy = false;
+    setInterval(() => { if (busy || ["done", "stopped"].includes(S.status) && img.dataset.final) return;
+      busy = true; const n = new Image();
+      n.onload = () => { img.src = n.src; busy = false; if (["done", "stopped"].includes(S.status)) img.dataset.final = 1; };
+      n.onerror = () => { busy = false; }; n.src = withKey(`frame/${name}.jpg?t=${Date.now()}`); }, 300);
+  }
+}
+
+S = fresh(); renderAll(); requestAnimationFrame(loop);
+if (LIVE) {
+  document.body.classList.add("live"); liveFrames();
+  let seen = 0, idx = 0;
+  const es = new EventSource(withKey("events"));
+  es.onopen = () => { idx = 0; };
+  es.onmessage = e => { idx++; if (idx <= seen) return; seen = idx; apply(JSON.parse(e.data)); };
+  es.onerror = () => { if (!["done", "stopped"].includes(S.status)) setNow("Connection to the run lost", "retrying… STOP still works from a terminal: touch $RUN_DIR/STOP"); };
+} else {
+  $("demoText").innerHTML = "<b>NO RUN</b> open this page through the dashboard server"; $("demoCtl").hidden = true;
+  $("feed").innerHTML = `<div class="empty">Start a run with <code>sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch</code> and open the link in its dashboard.txt.</div>`;
+  setNow("No run connected", "this page shows a live run from the dashboard server");
+}
+})();
+</script>

@@ -1,0 +1,18 @@
+# secrets: never commit keys or env files (keys live in ~/.config/<provider>/key, outside the repo)
+.env
+.env.*
+*.key
+*.pem
+**/key
+*_key
+secrets/
+*spend*.json
+# run outputs, logs and large binaries stay outside the repo
+results/
+logs/
+outputs/
+cache/
+*.sif
+*.usd
+*.mp4
+__pycache__/
