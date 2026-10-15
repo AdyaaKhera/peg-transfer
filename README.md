@@ -1,6 +1,4 @@
-# FLS Task write-up
-
-Adyaa
+# <p align="center">FLS Peg Transfer</p>
 
 ## What?
 
@@ -26,12 +24,12 @@ it to the real world. We compare two AI models, GPT-6.1 Sol (OpenAI) and Claude 
 millimetre grid, the wrist-camera photos of its latest grasps, and a short report of what the previous actions did.
 The model then decides and plans the next actions, whether to pick, hand over, or place an object, without receiving
 any depth data or coordinates, reading positions entirely from the overhead photos. It may chain up to 6 actions in
-one turn and has 20 turns in total. A motion controller for the arms then executes the actions decided by the model and
+one turn and has 20 turns in total to finish the task. A motion controller for the arms then executes the actions decided by the model and
 checks for collisions.
 
 <p align="center"><img src="fls_writeup_media/transfer.gif" width="560"><br>
 <em>Figure 1. One full transfer by Claude Opus 5.5 in Isaac Sim, front camera (2x speed): the left arm picks the red
-triangle, passes it to the right arm in mid-air, and the right arm lowers it onto a peg.</em></p>
+triangle, passes it to the right arm mid-air, and the right arm lowers it onto a peg.</em></p>
 
 <p align="center"><img src="fls_writeup_media/overhead_turns.gif" width="700"><br>
 <em>Figure 2. What the model sees: the overhead photo with a millimetre grid at the start of each turn of one run,
@@ -98,7 +96,7 @@ same feedback the models get. It completed 11-12 of 12 transfers with no drops.
 | Contact | A contact means that a simulated physical contact was made by two bodies (gripper, peg, board, object). Contacts less than 1.5 s apart count as one. |
 | Robot time | The time the arms spend moving, in simulated seconds. It **does not include the model's thinking time**, the time waiting for the model's reply, or the simulator's own rendering time. This is the number compared with the FLS 300 s limit. |
 
-Table 1. A list of actions and their evaluation definitions
+<p align="center">Table 1. A list of actions and their evaluation definitions</p>
 
 Every failure during the experiment is labelled by cause and assigned as either the model's or the controller's. For
 example, a contact during a pick (where the model chose the grip point) counts against the model; a contact during a
@@ -173,3 +171,8 @@ an interactable environment.
 [1] F. Rashidi Fathabadi, J. L. Grantner, S. A. Shebrain, and I. Abdel-Qader, "Autonomous sequential surgical skills
 assessment for the peg transfer task in a laparoscopic box-trainer system with three cameras," *Robotica*, vol. 41,
 no. 6, pp. 1837-1855, 2023. doi: [10.1017/S0263574723000218](https://doi.org/10.1017/S0263574723000218)
+
+## Contributors
+
+- Adyaa Khera
+- Claude Code
