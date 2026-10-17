@@ -57,7 +57,7 @@ Isaac Sim. Each is under its own open-source license.
 
 ## Development tools
 
-Much of the code and documentation was written with Claude Code (Anthropic), as listed under Contributors.
+Much of the code and documentation was written with Claude Code (Anthropic).
 
 ## FLS
 
