@@ -53,7 +53,8 @@ included in this repository.
 
 Used at run time and installed separately (not included here): NumPy, SciPy and Pillow, matplotlib for the plots,
 imageio and imageio-ffmpeg (FFmpeg) for the videos, and Pixar's USD (`pxr`) and Omniverse modules, which ship with
-Isaac Sim. Each is under its own open-source license.
+Isaac Sim. The libraries are under their own open-source licenses; the Omniverse modules are under NVIDIA's
+license (see Isaac Sim above).
 
 ## Development tools
 
