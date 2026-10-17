@@ -5,7 +5,7 @@ lessons, and update the series file that the next round reads.
                           "lessons": [...], "saturated": bool}
   <series>/round_NN_debrief.txt, round_NN_lessons.json
 
-  python reflect_round.py --run_dir <packaged run> --series <dir> --round N --model M [--effort low] [--cap 3]"""
+  python reflect_round.py --run_dir <packaged run> --series <dir> --round N --model M [--effort medium] [--cap 3]"""
 import argparse
 import json
 import os
@@ -25,7 +25,7 @@ ap.add_argument("--run_dir", required=True)
 ap.add_argument("--series", required=True)
 ap.add_argument("--round", type=int, required=True)
 ap.add_argument("--model", required=True)
-ap.add_argument("--effort", default="low")
+ap.add_argument("--effort", default="medium")   # v2 runs used medium
 ap.add_argument("--cap", type=float, default=3.00)
 args = ap.parse_args()
 

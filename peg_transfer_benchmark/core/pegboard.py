@@ -41,7 +41,7 @@ OBJ_RO = OBJ_SIDE / math.sqrt(3)                                 # centre to a c
 OBJ_W = OBJ_SIDE / (2 * math.sqrt(3)) - OBJ_HOLE_R              # wall thickness (9.2 mm)
 OBJ_LC = (OBJ_SIDE / (2 * math.sqrt(3)) + OBJ_HOLE_R) * math.sqrt(3)   # side of the walls' centre lines
 BAR_L = OBJ_LC + math.sqrt(3) * OBJ_W                           # each wall's length: long enough for sharp outer corners
-# Standard FLS layout (checked for reach with the arm kinematics, scratch eval/reach.py): left, two straight columns
+# Standard FLS layout (checked for reach with the arm kinematics, scripts/setup/reach_check.py): left, two straight columns
 # of three; right, a ring of six. Every peg is 25-46 cm from its arm's base.
 RING_C, RING_R = (605.0, 150.0), 95.0
 PEGS_MM = [(x, y) for x in (130.0, 260.0) for y in (60.0, 150.0, 240.0)] + \
@@ -63,9 +63,9 @@ GRIP_SQUEEZE = 0.0006      # closed: this much tighter than the corner's width w
 TRANSFER = (0.31, -0.305, 0.11)   # mid-air transfer point (object centre), over the middle of the board: low enough
                                    # that the holder (gripper vertical, reach ends near 0.17 m) can rise 5 cm off it
 RECV_ELEVS = [math.radians(e) for e in (35, 15)]   # receiver's approach, degrees below level, in this order: 35 reaches every
-                                                         # ring peg afterwards (eval/reach.py); flatter ones only if 35 would clash
+                                                         # ring peg afterwards (scripts/setup/reach_check.py); flatter ones only if 35 would clash
 ARM_GAP_MIN = 0.006        # the receiver backs out of an approach that brings any part of the two arms closer than this
-PRESENT_OFFSETS = [0.0, math.radians(40)]   # v2: fewer tries; a failed hand-over now says how to fix it   # holder turns a free corner to the receiver, then also +-40 deg
+PRESENT_OFFSETS = [0.0, math.radians(40)]   # holder turns a free corner to the receiver, then also +40 deg (v2: fewer tries; a failed hand-over says how to fix it)
 SAFE_Z = 0.12              # carry height: a held object's bottom clears the 40 mm pegs by 8 cm
 PARK = {"left": (0.28, 0.17, 0.28), "right": (0.28, -0.78, 0.28)}   # beside the board on each arm's own side, out of the photo
 RENDER_GAMMA = 1.6         # the renderer over-exposes colours; pre-darken materials so they look like their names

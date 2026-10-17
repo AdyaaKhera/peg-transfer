@@ -13,7 +13,7 @@
 #   MODEL=<openai model id> sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch [--phases 1] [gpt_pegs.py args]
 #   MODEL=anthropic/claude-opus-5.5 ...                                              # OpenRouter (~/.config/openrouter/key)
 #   ROUND=2 MODEL=... sbatch ...      # comparison round 2: seed 1, the model's lessons from round 1, then its reflection
-#                                     # (series in $P/results/peg_transfer_benchmark/comparison/<model>/)
+#                                     # (series in $P/results/peg_transfer_benchmark/comparison_v2/<model>/)
 # The dashboard link (with its access token) is written to $RUN_DIR/dashboard.txt once the job starts.
 
 P=${P:-$HOME/isaac-bench}   # working folder: repo/ (this repo), assets/, sim_pylibs/, third_party/, results/

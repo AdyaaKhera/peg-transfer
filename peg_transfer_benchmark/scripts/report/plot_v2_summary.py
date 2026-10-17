@@ -15,12 +15,12 @@ P = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".
 CMP = os.path.join(P, "results", "peg_transfer_benchmark", "comparison_v2")
 M = {"gpt-6.1-sol": ("GPT-6.1 Sol", "#eb6834"), "anthropic_claude-opus-5.5": ("Claude Opus 5.5", "#2a78d6")}
 INK, MUTED, GRID = "#1b2120", "#5d6764", "#e3e6e4"
-CEIL = (75.9, 77.4)          # stand-in, same controller, exact positions, full 12-transfer task
+CEIL = (74.6, 76.1)          # stand-in on the same three boards (seeds 0-2): 76.1, 74.6, 75.9
 NOTES = {("gpt-6.1-sol", 1): "one call per turn:\nout of turns at 6/12",
          ("gpt-6.1-sol", 2): "lesson said batch calls;\nstill one per turn",
          ("gpt-6.1-sol", 3): "same again: saturated,\nseries stopped",
-         ("anthropic_claude-opus-5.5", 1): "12/12, but 17 robot\nhand-over contacts",
-         ("anthropic_claude-opus-5.5", 2): "contacts 17 -> 6, but\n4 missed picks, 9 refused places",
+         ("anthropic_claude-opus-5.5", 1): "12/12, but 17 contacts\n(15 in hand-overs)",
+         ("anthropic_claude-opus-5.5", 2): "hand-over contacts 15 -> 6,\nbut 4 missed picks, 9 refused places",
          ("anthropic_claude-opus-5.5", 3): "12/12 after an early\nfailed hand-over"}
 OFFS = {("gpt-6.1-sol", 1): (0, -14, "center"), ("gpt-6.1-sol", 2): (0, -14, "center"), ("gpt-6.1-sol", 3): (0, -14, "center"),
         ("anthropic_claude-opus-5.5", 1): (-12, 0, "right"), ("anthropic_claude-opus-5.5", 2): (14, 2, "left"),
@@ -53,7 +53,7 @@ def style(ax, title):
 
 # A: reward by round (solid) and model-only reward (dashed: robot-caused contacts excluded)
 A.axhspan(*CEIL, color="#d9dcda", zorder=0)
-A.text(3.7, CEIL[1] + 1.2, "stand-in ceiling, same robot, exact positions: 76-77", ha="right", fontsize=8, color=MUTED)
+A.text(3.7, CEIL[1] + 1.2, "stand-in baseline on the same boards (exact positions): 74.6-76.1", ha="right", fontsize=8, color=MUTED)
 for m, (name, col) in M.items():
     xs = [r["round"] for r in S[m]]
     A.plot(xs, [r["reward_model_only"] for r in S[m]], color=col, lw=1.4, ls=(0, (4, 2)), marker="o", ms=5,
@@ -120,7 +120,7 @@ D.set_ylabel("\\$", fontsize=8, color=MUTED)
 style(D, f"Cost per round (total: GPT \\${tot['GPT-6.1 Sol']:.2f}, Opus \\${tot['Claude Opus 5.5']:.2f})")
 D.set_xlabel("Round", fontsize=8, color=MUTED)
 
-fig.suptitle("FLS peg transfer v2: GPT-6.1 Sol vs Claude Opus 5.5, effort medium, 12 transfers, 20 turns, vague feedback",
+fig.suptitle("FLS peg transfer v2 (preliminary, one run per round): GPT-6.1 Sol vs Claude Opus 5.5, effort medium, 20 turns",
              x=0.06, ha="left", fontsize=11.5, color=INK)
 fig.text(0.06, 0.015, "Model-only reward leaves out contacts during motions the robot plans itself (hand-overs, lowering). "
          "One run per round; round 1 = seed 0, 2 = seed 1, 3 = seed 2 for both models, so the boards match across models.",

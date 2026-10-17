@@ -74,7 +74,7 @@ ax.axvline(300, color=MUTED, lw=1, ls=(0, (4, 3)), zorder=1)
 ax.text(302, 2, "FLS time limit (300 s)", color=MUTED, fontsize=8.5, va="bottom")
 ax.set_xlabel("Robot time (s): arm motion only, not model thinking or simulator overhead", color=INK, fontsize=10)
 ax.set_ylabel("Reward so far (recomputed after every turn)", color=INK, fontsize=10)
-ax.set_title("Peg transfer v2: reward as each run unfolds, all models and rounds", color=INK, fontsize=13,
+ax.set_title("Peg transfer v2 (preliminary, one run per round): reward as each run unfolds", color=INK, fontsize=13,
              loc="left", pad=12)
 ax.set_ylim(0, max(80, max(e[1] for e in ends) + 6) if ends else 80)
 ax.set_xlim(0, max(330, max(e[0] for e in ends) * 1.22) if ends else 330)

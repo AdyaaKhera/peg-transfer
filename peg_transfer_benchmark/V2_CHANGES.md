@@ -7,7 +7,8 @@ where it was seen, and the proposed change.
 ## Status (frozen as git tag peg-v2, 2026-10-13)
 
 Done in v2: 4a (arm halves), 4c (longer line-up), 5 / 8 (hand-over failure explains the fix), 5b (turn budget),
-6 / 6b / 6c / 7 (feedback with exact grip points and peg centres), 9 / 10 (reflection with photos, methods not
+6 / 6b / 6c / 7 (feedback that says where each miss was; first as exact grip points and peg centres, then replaced
+before the runs by rough directions in words, see below), 9 / 10 (reflection with photos, methods not
 coordinates), 11 (clumsy stand-in), 13 (model-only reward), 15a (live reward), 15c (gated checks), 1 (shifted
 hand-over presentations), plus: release interlock (never let go unless within 4 mm of a peg; seat on the peg), tilted
 triangles pinched square to their surface, standing triangles (> 35 degrees) reported as unrecoverable, dashboard

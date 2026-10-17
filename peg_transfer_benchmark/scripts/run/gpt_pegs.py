@@ -1,10 +1,14 @@
-"""FLS peg transfer benchmark: GPT runs the two YAM arms through the peg transfer task in Isaac Sim.
+"""FLS peg transfer benchmark: an AI model (GPT via OpenAI, or e.g. Claude via OpenRouter) runs the two YAM arms
+through the peg transfer task in Isaac Sim.
 
 Each turn: park both arms, photograph the board from overhead (orthographic, mm grid drawn on), check the budget, ask
 the model for one or more tool calls (pick / hand_over / place / done), run them in order (stopping at the first
 failure). Everything the dashboard shows is written to $RUN_DIR; creating $RUN_DIR/STOP ends the run cleanly.
 
   --model mock      stand-in model that plays the task from the simulator's ground truth; $0, no key needed
+  --model clumsy    error-prone stand-in (aim off, wrong arm, bad corners; corrects from the feedback words); $0
+  --model replay    replays the calls of an earlier run; $0
+  --model a/b       a model id with a slash goes through OpenRouter (e.g. anthropic/claude-opus-5.5), its own key file
   --model <id>      OpenAI model id; key from ~/.config/openai/key (or OPENAI_KEY_FILE); spend over --cap is flagged, not stopped"""
 import os
 from isaacsim import SimulationApp

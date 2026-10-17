@@ -1,65 +1,84 @@
-# FLS peg transfer: can GPT run a surgical skills test with two robot arms?
+# FLS peg transfer: two robot arms run a surgical skills test, directed by an AI model
 
-The peg transfer is the first task of the FLS exam (Fundamentals of Laparoscopic Surgery), which surgeons in the US pass before they can be board certified. Six small triangular objects sit on pegs on the left of a board. Each object has to be lifted with the left grasper, passed in mid-air to the right grasper, and dropped over a peg on the right. Then all six go back the same way.
+The peg transfer is the first task of the FLS exam (Fundamentals of Laparoscopic Surgery). Six small triangular
+objects sit on pegs on the left of a board. Each object has to be lifted with the left grasper, passed in mid-air to
+the right grasper, and placed over a peg on the right. Then all six go back the same way.
 
-In this benchmark, two black I2RT YAM arms in Isaac Sim 6.0 do the handling and GPT directs them. Each turn it sees an overhead photo of the board with a millimetre grid and calls tools:
+In this benchmark, two I2RT YAM arms in Isaac Sim 6.0.1 do the handling and an AI model (GPT-6.1 Sol or Claude Opus
+5.5 in v2) directs them. Each turn the model sees an overhead photo of the board with a millimetre grid and calls tools:
 
 | Tool | What the robot does |
 |---|---|
-| `pick(arm, x_mm, y_mm)` | Moves that gripper over the point, turns it to close across the nearest bar, descends and closes |
-| `hand_over()` | Brings the held object to the centre; the other gripper takes it by the bar farthest from the first |
-| `place(x_mm, y_mm)` | Lowers the held object so its hole is over the point, then lets go |
-| `done()` | Ends the run |
+| `pick(arm, x_mm, y_mm, note)` | Moves that gripper to the point and pinches the nearest corner of a triangle there (aim on the corner's centre line, about 12 mm in from its tip), then lifts it. Each arm works only its own half of the board |
+| `hand_over(note)` | Brings the held object to the middle of the board; the other gripper takes it by a free corner |
+| `place(x_mm, y_mm, height_mm, note)` | Lowers the held object so its hole is over the point, until its underside is `height_mm` (2-60 mm) above the peg top, then lets go. Refused unless the point is within 4 mm of a peg's centre |
+| `done(note)` | Ends the run |
 
-GPT may chain several calls in one turn, so pick → hand_over → place can move one object per turn. The first call that fails ends the turn. Its coordinates decide where the gripper goes, so a pick a few millimetres off a bar closes on nothing, and a place a few millimetres off a peg drops the object.
+`note` is one short sentence for the operator. The model may chain up to 6 calls in one turn, so pick, hand_over and
+place can move one object per turn; the first call that fails ends the turn. A pick that misses the grip point closes
+on nothing, and a refused place leaves the object in the gripper. After a miss the model is told only roughly which
+way it was off, in words ("about a centimetre to the left and a little lower in the photo").
 
 ## Physics, grasping and collisions
 
-The YAM gripper is far bigger than a laparoscopic grasper. Its fingers are 94 mm long and widen to 65 mm, and its body is 10 cm wide. The task is scaled to fit it:
-- 90 mm triangles made of 10 mm bars
-- 10 × 40 mm pegs, 130 mm apart
-- a 620 × 420 mm board
+The YAM gripper is far bigger than a laparoscopic grasper. Its fingers are 94 mm long and widen to 65 mm, and its body
+is 10 cm wide. The task is scaled to fit it (all values in `core/pegboard.py`):
+- solid triangles with 70 mm sides, 20 mm thick, with a hole through the middle (11 mm inscribed radius)
+- 10 mm wide, 40 mm tall pegs: on the left two columns of three (x 130 and 260 mm, y 60, 150 and 240 mm), on the
+  right six on a ring of radius 95 mm around (605, 150) mm
+- an 810 x 300 mm board, split into a left and a right field
 
-The pegs and objects are rigid bodies. A released object slides down a peg if its hole is over it. If it isn't, the object hits the peg and falls onto the board or off it.
+The pegs and objects are rigid bodies. A released object slides down a peg if its hole is over it.
 
-**Grasping.** The robot's URDF has visual meshes but no collision shapes, so grasps are decided geometrically. Every measurement comes from the meshes (`scripts/setup/robot_geometry.py`), including the finger pads, which sit 14 cm out from the wrist.
-- The fingers open only 2 mm either side of a bar.
-- A grasp holds when they close with a bar between them: the pad centre must be within 7 mm of the bar's centre line, closing across it.
-- While held, the object is moved with the gripper on every simulation step and drawn there. Once the fingers open, physics takes over again.
-- One finger goes down inside the hole, so the bar to pick is the one farthest from the peg. The peg can sit anywhere in the hole.
+**Grasping.** The robot's URDF has visual meshes but no collision shapes, so grasps are decided geometrically. Every
+measurement comes from the meshes (`scripts/setup/robot_geometry.py`), including the finger pads.
+- The gripper pinches a corner of the triangle, square to its surface (a tilted triangle is pinched tilted).
+- A grasp holds when the finger pads close within 6 mm of the corner's centre line and 4-22 mm in from its tip.
+- A triangle tilted more than 35 degrees (standing on its edge) can no longer be pinched.
+- While held, the object moves with the gripper on every simulation step. Once the fingers open, physics takes over.
 
 **Mid-air transfer.**
-1. The holding arm lifts the object 25 cm above the centre of the board.
-2. It turns the object and tilts it 40° toward its own side.
-3. The other arm leans 40° toward its own side and closes on a bar near the far corner. That grasp must pass the same test as a pick, or the transfer fails.
-4. Both grippers hold the object for a moment, then the first lets go and backs away.
+1. The holding arm brings the object to the transfer point over the middle of the board, 11 cm above it.
+2. It turns a free corner toward the other arm. If the other arm can't reach it, it tries up to six presentations
+   (other corners, a 40 degree turn, or shifted 5 cm aside or 4 cm ahead).
+3. The other arm approaches 35 degrees below level (then 15 degrees) and pinches that corner, with the same test as a
+   pick. It backs out of any approach that would bring the two arms within 6 mm of each other.
+4. Both grippers hold the object for a moment, then the first lets go and backs away. If no presentation works, the
+   object stays in the first gripper and the model is told to re-grip it by another corner.
 
-The two arms meet the object from opposite sides; at their closest so far they were 18 mm apart. Before placing, the new holder levels the object.
+**Placing.** The new holder levels the object, lines its hole up over the peg (several small corrections), lowers it
+with a guarded, slowing motion, and lets go `height_mm` above the peg top.
 
-**Collision monitor** (`core/collide.py`). Because PhysX can't see the arms, every other step checks, using the arms' real mesh surfaces placed at the links' live poses:
+**Collision monitor** (`core/collide.py`). Because PhysX can't see the arms, every other simulation step checks, using
+the arms' real mesh surfaces placed at the links' live poses:
 - arm against arm, the board, any peg or any object (fingers may touch only the object they hold)
 - the held object against pegs, other objects and the board
 
-A contact is real overlap of more than 0.5 mm. Every contact is logged with its time, shown on the dashboard, reported to GPT in the next turn and counted in the score.
+A contact is a real overlap of more than 0.5 mm. Every contact is logged with its time and the phase it happened in,
+shown on the dashboard, reported to the model in the next turn and counted in the score. Contacts less than 1.5 s
+apart count as one incident.
 
 ## Score
 
 | Check | Pass |
 |---|---|
 | Transfers | 12 of 12: six across and six back, each placed on a peg on the other side after a mid-air hand-over |
-| Left → right / right → left | 6 of 6 each way |
+| Left -> right / right -> left | 6 of 6 each way |
 | Drops | 0. A drop is a release that doesn't end over a peg |
 | Lost off board | 0. In FLS, objects dropped out of the field can't be recovered |
-| Robot time | Simulated time spent on actions within 300 s, the FLS time limit |
-| Collisions | 0 |
+| Robot time | Simulated time the arms spend on actions, within 300 s (the FLS time limit). Model thinking time is not counted |
+| Collisions | 0. This check counts every logged contact event; the reward and the write-up group events less than 1.5 s apart into one incident, so their numbers are lower |
+
+Each run also gets a reward out of 100 (`core/reward.py`): completion 40, speed 20, precision 15, gentleness 5,
+safety 10 and efficiency 10, minus 10 per drop and 20 per lost object. The model-only reward is the same but counts
+only contacts during actions whose geometry the model chose (picks), not ones during motions the robot plans itself.
 
 `--phases 1` runs only the left-to-right half.
 
 ## Cost
 
-Prices are for Standard mode: $2 per 1M input tokens, $0.10 per 1M cached input tokens, $10 per 1M output tokens.
-
-Moving one object per turn, the full task is about 13 calls, roughly **$0.25–0.35**. The 20-turn worst case, with every call at the 4,000-token output limit, is about $1.
+In the v2 comparison (20 turns, effort medium) a GPT-6.1 Sol round cost about $0.10 and a Claude Opus 5.5 round
+(via OpenRouter) about $0.70-0.90, including the reflection between rounds.
 
 Each provider has its own spend ledger (`$P/results/openai_spend.json`, `$P/results/openrouter_spend.json`) and a
 budget (`--cap`, default $3.00). Going over the budget does not stop a run: the dashboard's spend turns red and the
@@ -76,42 +95,55 @@ You need, in one working folder `$P` (default `~/isaac-bench`):
 - an API key for the provider you use, in the key file named below (`chmod 600`). Keys are only ever read from
   that file or the environment; never put one in the repo.
 
-Edit the `#SBATCH -A` line in `slurm/*.sbatch` to your Slurm account (and the partition to one with RTX GPUs), then,
-from `$P/repo`:
+Edit the `#SBATCH -A` line in `slurm/*.sbatch` to your Slurm account, and the partition (`-p a10`) and QOS
+(`-q standby`) to ones your cluster has with RTX GPUs. The job log goes to `logs/` in the folder you submit from, so
+create it first (`mkdir -p logs`). Then, from `$P/repo`:
 
 ```bash
-python3 peg_transfer_benchmark/scripts/setup/openai_preflight.py <model id>   # free key and model check
+python3 peg_transfer_benchmark/scripts/setup/openai_preflight.py <model id>   # free check of an OpenAI key and model (OpenAI only)
 MODEL=mock sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch                # stand-in model: real sim, $0
 MODEL=clumsy sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch              # error-prone stand-in, $0
-MODEL=<model id> sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch          # GPT
+MODEL=<model id> sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch          # a model (default 40 turns; v2 used --turns 20)
 # the v2 comparison: round r plays seed r-1 with the lessons from earlier rounds, then writes new lessons
 ROUND=1 MODEL=gpt-6.1-sol sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch --turns 20
 ROUND=1 MODEL=anthropic/claude-opus-5.5 sbatch peg_transfer_benchmark/slurm/run_pegs.sbatch --turns 20
 ```
 
-The key goes in `~/.config/openai/key` (`chmod 600`). `SEED=<n>` changes the objects' starting orientations.
+The key goes in `~/.config/openai/key` (GPT) or `~/.config/openrouter/key` (Claude via OpenRouter), `chmod 600`.
+`SEED=<n>` changes the objects' starting orientations.
 
-To watch a run, open `dashboard.txt` in its run folder (`$P/results/peg_transfer_benchmark/<model>/seed<N>_j<job>/`). In VS Code's Ports panel, forward the `<node>:<port>` it lists, then open its link. The dashboard shows:
-- the scene camera (facing the robot, so the robot's left arm appears on the right of the image) and the wrist camera of whichever arm is working
-- GPT's reasoning and every call
+To watch a run, open `dashboard.txt` in its run folder (`live/dashboard.txt` once the run has been packaged). In VS
+Code's Ports panel, forward the `<node>:<port>` it lists, then open its link. The dashboard shows:
+- the scene camera (facing the robot, so the robot's left arm appears on the right of the image) and the wrist camera
+  of whichever arm is working
+- the model's reasoning and every call
 - what each gripper holds
-- spend against the cap
-- the running score
+- spend against the budget
+- the running score and reward
 
-To stop a run, press **STOP**, press Esc, or run `touch <run dir>/STOP`. The arms lift clear and hold, and the results are saved. If the run hasn't stopped after 45 s, the dashboard server cancels the job.
+To stop a run, press **STOP**, press Esc, or run `touch <run dir>/STOP`. The arms lift clear and hold, and the results
+are saved. If the run hasn't stopped after 45 s, the dashboard server cancels the job.
 
 ## Outputs
 
-Each run writes to `$P/results/peg_transfer_benchmark/...`:
+A single run writes to `$P/results/peg_transfer_benchmark/<model>/<date>_seed<N>_j<job>/`; a comparison round
+(`ROUND=r`) writes to `$P/results/peg_transfer_benchmark/comparison_v2/<model>/round_<rr>_seed<N>_j<job>/` (`<rr>`
+is the round with two digits, e.g. `round_01_seed0_j12345`). When the run
+ends, `scripts/report/package_run.py` sorts it into:
 
-| File | Contents |
+| Path | Contents |
 |---|---|
-| `result.json` | Score, cost and token usage |
-| `turns.json` | Each turn's reasoning, calls and their results |
-| `t01_photo.png`, `t02_photo.png`, … | What GPT saw each turn |
-| `board_final.png` | The board at the end |
-| `video.mp4` | Recording of the run |
-| `events.jsonl` | Everything the dashboard showed |
+| `README.md` | Summary: model, date, score table, cost, tokens, what happened |
+| `score/result.json` | Score, reward, cost and token usage |
+| `model/turns.json`, `model/transcript.md`, `model/system_prompt.txt` | Each turn's reasoning, calls and their results |
+| `photos/turn_01.png`, ..., `photos/board_final.png` | Exactly what the model saw each turn, and the board at the end |
+| `photos/wrist/` | The wrist-camera photos taken after grasps |
+| `video/full.mp4`, `video/preview_6x.mp4`, `video/handover.jpg` | Recording of the run, a 6x preview, the first mid-air transfer |
+| `live/` | The dashboard's data (`events.jsonl`, last camera frames, `dashboard.txt`) |
+
+A comparison series also keeps `series.json` (rewards, metrics and the current lessons) and, per round,
+`round_<rr>_debrief.txt`, `round_<rr>_lessons.json` and `round_<rr>_reflection_raw.json` (the model's raw reply) in
+`comparison_v2/<model>/`. `scripts/run/reflect_only.sh <round> <model>` re-runs just the reflection for a round.
 
 ## Simulator notes
 
@@ -124,13 +156,18 @@ Each run writes to `$P/results/peg_transfer_benchmark/...`:
 | Path | Contents |
 |---|---|
 | `core/pegboard.py` | Board, pegs and objects; grasp and carry; pick, hand_over and place; where each object ended up; score; prompts and tools; the stand-in model |
+| `core/kin.py` | Forward kinematics and global IK (scipy least squares) from the YAM URDF |
 | `core/ik.py` | Differential IK for both grippers: finger-pad point plus a chosen approach and closing direction, keeping the wrist inside its ±120° limit |
 | `core/collide.py` | Collision monitor |
-| `scripts/setup/robot_geometry.py` | Measures the robot from its meshes and writes `core/yam_geometry.npz` |
-| `core/openai_client.py` | Responses API over https (streaming, cancel, several tool calls per reply) and the budget ledger |
-| `core/live.py` | Events, camera frames and the STOP file for the dashboard |
-| `core/yam_env.py`, `core/paint_sim.py` | The YAM scene, adapted from `art_benchmarks` with both grippers and a task hook. The board is the textured "sheet" |
-| `scripts/run/gpt_pegs.py` | The benchmark run |
+| `scripts/setup/robot_geometry.py` | Measures the robot from its meshes and writes `core/yam_geometry.npz` (I2RT meshes, MIT License; see THIRD_PARTY_NOTICES.md) |
+| `scripts/setup/reach_check.py` | Offline check that every pick, hand-over and place pose is reachable |
+| `scripts/setup/openai_preflight.py` | Free check of an OpenAI key and model id |
+| `core/openai_client.py`, `core/openrouter_client.py` | OpenAI Responses API and OpenRouter chat API over https (streaming, cancel, several tool calls per reply) and the spend ledger |
+| `core/reward.py`, `core/reflect.py` | The reward, and the debrief and lessons between rounds |
+| `core/live.py`, `core/run_io.py` | Events, camera frames and the STOP file for the dashboard; saving run files |
+| `core/yam_env.py`, `core/paint_sim.py` | The YAM scene, adapted from an earlier robot-painting benchmark of ours (not included), with both grippers and a task hook. The board is the textured "sheet" |
+| `scripts/run/gpt_pegs.py`, `scripts/run/reflect_round.py`, `scripts/run/reflect_only.sh` | The benchmark run, the reflection that writes the next round's lessons, and re-running only the reflection |
+| `scripts/report/` | Packaging a run, and the plots |
 | `scripts/setup/smoke_pegs.py` | Scene check: one scripted transfer and one deliberate miss |
 | `scripts/servers/dashboard_server.py`, `dashboard/index.html` | Live dashboard (token-protected) |
 | `slurm/run_pegs.sbatch`, `slurm/smoke.sbatch` | Jobs. Both use Isaac Sim 6.0.1 with the NGX library bound in (see Simulator notes) |
