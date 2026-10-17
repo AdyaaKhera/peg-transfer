@@ -123,14 +123,14 @@ can first happen after round 3), or after 5 rounds. This rule stopped GPT after 
 | Grasps that worked | 36/36 | 18/19 | 34/41 |
 | Placements accepted | 36/36 | 16/24 | 34/60 |
 | Placement error (mean) | 0 mm | 1.2 - 2.9 mm | 3.0 - 4.8 mm |
-| Contacts | 8, 11, 9 | 4, 2, 3 | 17, 6, 12 |
-| Robot time | 377.5, 406.0, 379.2 s | 207.2, 177.9, 154.5 s (not finished) | 414.3, 465.3, 534.1 s |
+| Contacts | 8, 13, 9 | 4, 2, 3 | 17, 6, 12 |
+| Robot time | 377.5, 415.4, 379.2 s | 207.2, 177.9, 154.5 s (not finished) | 414.3, 465.3, 534.1 s |
 | Actions per turn (mean) | 2.8 | 1.0 | 3.1 - 4.6 |
-| Reward (out of 100) | 76.1, 74.6, 75.9 | 50.1, 46.0, 45.1 | 67.0, 51.4, 58.3 |
+| Reward (out of 100) | 76.1, 74.0, 75.9 | 50.1, 46.0, 45.1 | 67.0, 51.4, 58.3 |
 | Cost for 3 rounds | $0 | $0.33 | $2.44 |
 
 Table 2. Preliminary results for rounds 1, 2 and 3 (one run each, on the same three boards for every column). Medium
-thinking level for both models.
+thinking level for both models. The stand-in was run on the same final code as the models.
 
 <p align="center"><img src="fls_writeup_media/results_summary.png" width="900"><br>
 <em>Figure 4. Reward by round (solid) and model-only reward (dashed), actions per turn, mean placement error against
@@ -145,7 +145,7 @@ ran out of turns; Opus's runs go past the 300 s line.</em></p>
 <em>Figure 6. All six runs from the front camera at 12x speed, GPT-6.1 Sol on the left and Claude Opus 5.5 on the
 right, rounds 1 to 3 from top to bottom.</em></p>
 
-Note that even the stand-in takes 378-406 s of robot time, more than the FLS 300 s limit: our motion controller is
+Note that even the stand-in takes 378-415 s of robot time, more than the FLS 300 s limit: our motion controller is
 slower than a trained surgeon, so time should be compared with the stand-in rather than with 300 s for now.
 
 ## Inference (preliminary)
@@ -164,7 +164,7 @@ rounds are inconclusive (see Limitations).
   after round 1; it corrected its pick aim after round 2), but the differences between boards and the controller's own
   hand-over failures changed the score more than the lessons did. GPT's series was stopped after round 3 because its
   score kept falling.
-- **Both models are well below the stand-in** (best 67.0 against 74.6-76.1), mostly from missed placements, extra turns,
+- **Both models are well below the stand-in** (best 67.0 against 74.0-76.1), mostly from missed placements, extra turns,
   and in Opus's case slow robot time.
 - **Simulation problems we found and will fix next:** the feedback words ("about a centimetre") made both models
   overshoot a peg back and forth, a failed hand-over message wrongly said that retrying would not help, and the
@@ -183,7 +183,7 @@ rounds are inconclusive (see Limitations).
 - **One setting per model.** Both models ran at medium thinking level with a 20-turn limit. The turn limit makes
   chaining actions matter a lot; other limits or thinking levels may change the ranking.
 - **The robot is part of the result.** Our motion controller plans every hand-over and placement. Even the stand-in
-  makes 8-11 contacts and needs 378-406 s of robot time, more than the FLS limit of 300 s, so time and contacts are
+  makes 8-13 contacts and needs 378-415 s of robot time, more than the FLS limit of 300 s, so time and contacts are
   limited by the controller, not only by the model.
 - **No drops is partly by design.** A placement is refused unless it is within 4 mm of a peg, so the robot never lets
   go in the wrong place; FLS drops are not tested in the same way.

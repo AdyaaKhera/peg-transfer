@@ -15,7 +15,7 @@ P = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", ".
 CMP = os.path.join(P, "results", "peg_transfer_benchmark", "comparison_v2")
 M = {"gpt-6.1-sol": ("GPT-6.1 Sol", "#eb6834"), "anthropic_claude-opus-5.5": ("Claude Opus 5.5", "#2a78d6")}
 INK, MUTED, GRID = "#1b2120", "#5d6764", "#e3e6e4"
-CEIL = (74.6, 76.1)          # stand-in on the same three boards (seeds 0-2): 76.1, 74.6, 75.9
+CEIL = (74.0, 76.1)          # stand-in on the same three boards (seeds 0-2), final v2 code: 76.1, 74.0, 75.9
 NOTES = {("gpt-6.1-sol", 1): "one call per turn:\nout of turns at 6/12",
          ("gpt-6.1-sol", 2): "lesson said batch calls;\nstill one per turn",
          ("gpt-6.1-sol", 3): "same again: saturated,\nseries stopped",
@@ -53,7 +53,7 @@ def style(ax, title):
 
 # A: reward by round (solid) and model-only reward (dashed: robot-caused contacts excluded)
 A.axhspan(*CEIL, color="#d9dcda", zorder=0)
-A.text(3.7, CEIL[1] + 1.2, "stand-in baseline on the same boards (exact positions): 74.6-76.1", ha="right", fontsize=8, color=MUTED)
+A.text(3.7, CEIL[1] + 1.2, "stand-in baseline on the same boards (exact positions): 74.0-76.1", ha="right", fontsize=8, color=MUTED)
 for m, (name, col) in M.items():
     xs = [r["round"] for r in S[m]]
     A.plot(xs, [r["reward_model_only"] for r in S[m]], color=col, lw=1.4, ls=(0, (4, 2)), marker="o", ms=5,
