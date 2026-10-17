@@ -232,8 +232,3 @@ Full notices, including I2RT's MIT License text: [THIRD_PARTY_NOTICES.md](THIRD_
 [1] F. Rashidi Fathabadi, J. L. Grantner, S. A. Shebrain, and I. Abdel-Qader, "Autonomous sequential surgical skills
 assessment for the peg transfer task in a laparoscopic box-trainer system with three cameras," *Robotica*, vol. 41,
 no. 6, pp. 1837-1855, 2023. doi: [10.1017/S0263574723000218](https://doi.org/10.1017/S0263574723000218)
-
-## Contributors
-
-- Adyaa Khera
-- Claude Code
